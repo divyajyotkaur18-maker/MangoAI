@@ -1,4 +1,5 @@
 
+
 import express from "express";
 import "dotenv/config";
 import cors from "cors";
@@ -6,38 +7,65 @@ import mongoose from "mongoose";
 import chatRoutes from "./routes/chat.js";
 
 const app = express();
-
 const PORT = process.env.PORT || 8080;
 
-// Middleware
+// CORS configuration
 app.use(cors({
-  origin: "https://mangoai-ge5p.onrender.com"
+  origin: "https://mangoai-ge5p.onrender.com",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json());
 
-// Test route
+// Backend health check
 app.get("/", (req, res) => {
-  res.send("MangoAI Backend is running!");
+  res.status(200).send("MangoAI Backend is running!");
 });
 
-// API routes
+// Chat API
 app.use("/api/chat", chatRoutes);
 
-// Database connection
+// MongoDB connection
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log("Connected with Database");
+    const uri = process.env.MONGODB_URI;
+
+    console.log("MongoDB URI exists:", Boolean(uri));
+    console.log("MongoDB URI type:", typeof uri);
+    console.log("MongoDB URI prefix:", uri?.slice(0, 15));
+    console.log("MongoDB URI length:", uri?.length);
+
+    // Safe connection string diagnostics
+    console.log("Has whitespace:", /\s/.test(uri || ""));
+    console.log("Has quotation marks:", /["']/.test(uri || ""));
+    console.log("Has placeholder brackets:", /[<>]/.test(uri || ""));
+
+    console.log(
+      "Valid basic URI structure:",
+      /^mongodb\+srv:\/\/[^:/?#]+:[^@/]+@[^/?#]+/.test(uri || "")
+    );
+
+    if (!uri) {
+      throw new Error("MONGODB_URI is missing in Render Environment");
+    }
+
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 10000
+    });
+
+    console.log("MongoDB connected successfully!");
   } catch (err) {
-    console.error("Failed to connect with DB:", err.message);
+    console.error("MongoDB connection failed:", err.message);
   }
 };
 
+// Start server
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`MangoAI server running on port ${PORT}`);
   connectDB();
 });
+
 
 
 // Gemini API endpoint
